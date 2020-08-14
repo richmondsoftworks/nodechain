@@ -1,6 +1,26 @@
-import { calculateBlockHash } from "../block/calculateBlockHash";
-import { isBlockValid } from "../block/isBlockValid";
-import { Blockchain } from "./blockchain";
+import { Block, calculateBlockHash, isBlockValid, updateBlockHash } from "./block";
+import { Transaction } from "./transaction";
+
+export type Blockchain = {
+  blocks: Block[];
+  pendingTransactions: Transaction[];
+};
+
+export const addGenesisBlock = (chain: Blockchain): Blockchain => {
+  const block: Block = {
+    nonce: 0,
+    timestamp: new Date().valueOf(),
+    transactions: [],
+    hash: "",
+    previousHash: "",
+  };
+
+  updateBlockHash(block);
+
+  chain.blocks.push(block);
+
+  return chain;
+};
 
 export const isBlockchainValid = (chain: Blockchain): boolean => {
   const blocks = chain.blocks;
