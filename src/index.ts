@@ -1,9 +1,19 @@
-import { addGenesisBlock, Blockchain, isBlockchainValid } from "./comps/blockchain";
+import { inspect } from "util";
+
+import {
+  addGenesisBlock,
+  addTransaction,
+  Blockchain,
+  minePendingTransactions,
+  validateBlockchain
+} from "./comps/blockchain";
+
+inspect.defaultOptions.depth = null;
 
 const printChainStats = (chain: Blockchain) => {
-  console.log("chain", chain);
+  console.log("chain:", chain);
   console.log();
-  console.log("valid", isBlockchainValid(chain));
+  console.log("validation:", validateBlockchain(chain));
   console.log();
 };
 
@@ -16,6 +26,15 @@ const chain: Blockchain = {
 };
 
 addGenesisBlock(chain);
+
+addTransaction(chain, "me", "you", 10);
+
+printChainStats(chain);
+
+console.log("mining");
+console.log();
+
+minePendingTransactions(chain, "super");
 
 printChainStats(chain);
 

@@ -1,8 +1,5 @@
-import { createHash } from "crypto";
-
+import { hash } from "./crypto";
 import { Transaction } from "./transaction";
-
-const createHasher = () => createHash("sha256");
 
 export type Block = {
   nonce: number;
@@ -13,17 +10,17 @@ export type Block = {
 };
 
 export const calculateBlockHash = (block: Block): string => {
-  return createHasher()
-    .update(block.nonce + block.timestamp + block.previousHash + JSON.stringify(block.transactions))
-    .digest("hex");
+  return hash(block.nonce + block.timestamp + block.previousHash + JSON.stringify(block.transactions));
 };
 
-export const isBlockValid = (block: Block): boolean => {
-  return block.hash === calculateBlockHash(block);
-};
-
-export const updateBlockHash = (block: Block): Block => {
+export const updateBlockHash = (block: Block): void => {
   block.hash = calculateBlockHash(block);
+};
 
-  return block;
+export const validateBlock = (block: Block): string => {
+  const hash = calculateBlockHash(block);
+
+  if (block.hash !== hash) {
+    return `block hash mismatch: [${block.hash}, ${hash}]`;
+  }
 };
