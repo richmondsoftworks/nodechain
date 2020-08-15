@@ -1,38 +1,47 @@
 import { hash } from "./crypto";
 
-export type Transaction = {
-  fromAddress: string;
-  toAddress: string;
+export class Transaction {
+  from: string;
+  to: string;
   amount: number;
   timestamp: number;
   hash: string;
   signature: string;
-};
 
-export const calculateTransactionHash = (tx: Transaction): string => {
-  return hash(tx.fromAddress + tx.toAddress + tx.amount + tx.timestamp);
-};
-
-export const validateTransaction = (tx: Transaction): string => {
-  if (!tx.fromAddress) {
-    return "tx: fromAddress is required";
+  constructor(from: string, to: string, amount: number) {
+    this.from = from;
+    this.to = to;
+    this.amount = amount;
   }
 
-  if (!tx.toAddress) {
-    return "tx: toAddress is required";
-  }
+  calculateHash = (): string => {
+    return hash(this.from + this.to + this.amount + this.timestamp);
+  };
 
-  if (tx.amount < 0) {
-    return "tx: amount is required";
-  }
+  stampAndHash = (): Transaction => {
+    this.timestamp = new Date().valueOf();
+    this.hash = this.calculateHash();
 
-  const hash = calculateTransactionHash(tx);
+    return this;
+  };
 
-  if (tx.hash !== hash) {
-    return `tx: hash calculation mismatch: [${tx.hash}, ${hash}]`;
-  }
-};
+  validate = (): string => {
+    if (!this.from) {
+      return "tx: fromAddress is required";
+    }
 
-export const updateTransactionHash = (tx: Transaction): void => {
-  tx.hash = calculateTransactionHash(tx);
-};
+    if (!this.to) {
+      return "tx: toAddress is required";
+    }
+
+    if (this.amount < 0) {
+      return "tx: amount is required";
+    }
+
+    const hash = this.calculateHash();
+
+    if (this.hash !== hash) {
+      return `tx: hash calculation mismatch: [${this.hash}, ${hash}]`;
+    }
+  };
+}

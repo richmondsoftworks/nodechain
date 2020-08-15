@@ -1,46 +1,62 @@
-import { inspect } from "util";
+import * as readline from "readline";
 
-import {
-  addGenesisBlock,
-  addTransaction,
-  Blockchain,
-  minePendingTransactions,
-  validateBlockchain
-} from "./comps/blockchain";
+import { Blockchain } from "./comps/blockchain";
 
-inspect.defaultOptions.depth = null;
+const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+
+const question = (query: string) => {
+  return new Promise<string>((res) => {
+    rl.question(query, (answer) => {
+      res(answer);
+    });
+  });
+};
 
 const printChainStats = (chain: Blockchain) => {
-  console.log("chain:", chain);
+  console.log("chain", JSON.stringify(chain, null, 2));
   console.log();
-  console.log("validation:", validateBlockchain(chain));
+  console.log("validation:", chain.validate());
   console.log();
 };
 
 console.log("starting the blockchain");
 console.log();
 
-const chain: Blockchain = {
-  blocks: [],
-  pendingTransactions: [],
+const chain = new Blockchain();
+
+chain.addGenesisBlock();
+
+const run = async () => {
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    printChainStats(chain);
+
+    const answer = await question("press (m) for mine, (n) for new transaction, and (q) for quit...\n");
+
+    if (answer === "q") {
+      process.exit();
+    }
+
+    switch (answer) {
+      case "m": {
+        const miner = await question("miner? ");
+
+        chain.minePendingTransactions(miner);
+
+        break;
+      }
+
+      case "n": {
+        const from = await question("from? ");
+        const to = await question("to? ");
+        const amount = +(await question("amount? "));
+
+        chain.addTransaction(from, to, amount);
+
+        break;
+      }
+    }
+  }
 };
 
-addGenesisBlock(chain);
-
-addTransaction(chain, "me", "you", 10);
-
-printChainStats(chain);
-
-console.log("mining");
-console.log();
-
-minePendingTransactions(chain, "super");
-
-printChainStats(chain);
-
-console.log("manipulating chain");
-console.log();
-
-chain.blocks[0].timestamp = new Date().valueOf();
-
-printChainStats(chain);
+run();

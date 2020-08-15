@@ -1,26 +1,33 @@
 import { hash } from "./crypto";
 import { Transaction } from "./transaction";
 
-export type Block = {
+export class Block {
   nonce: number;
   timestamp: number;
-  transactions: Transaction[];
+  transactions: Transaction[] = [];
   previousHash: string;
   hash: string;
-};
 
-export const calculateBlockHash = (block: Block): string => {
-  return hash(block.nonce + block.timestamp + block.previousHash + JSON.stringify(block.transactions));
-};
-
-export const updateBlockHash = (block: Block): void => {
-  block.hash = calculateBlockHash(block);
-};
-
-export const validateBlock = (block: Block): string => {
-  const hash = calculateBlockHash(block);
-
-  if (block.hash !== hash) {
-    return `block hash mismatch: [${block.hash}, ${hash}]`;
+  constructor(previousHash: string) {
+    this.previousHash = previousHash;
   }
-};
+
+  calculateHash = (): string => {
+    return hash(this.nonce + this.timestamp + this.previousHash + JSON.stringify(this.transactions));
+  };
+
+  stampAndHash = (): Block => {
+    this.timestamp = new Date().valueOf();
+    this.hash = this.calculateHash();
+
+    return this;
+  };
+
+  validate = (): string => {
+    const hash = this.calculateHash();
+
+    if (this.hash !== hash) {
+      return `block hash mismatch: [${this.hash}, ${hash}]`;
+    }
+  };
+}

@@ -1,112 +1,89 @@
-import { Block, calculateBlockHash, updateBlockHash, validateBlock } from "./block";
-import { Transaction, updateTransactionHash, validateTransaction } from "./transaction";
+import { Block } from "./block";
+import { Transaction } from "./transaction";
 
-export type Blockchain = {
-  blocks: Block[];
-  pendingTransactions: Transaction[];
-};
+export class Blockchain {
+  blocks: Block[] = [];
+  pendingTransactions: Transaction[] = [];
 
-const reward = 10;
+  private reward = 10;
 
-export const addGenesisBlock = (chain: Blockchain): void => {
-  const block: Block = {
-    nonce: 0,
-    timestamp: new Date().valueOf(),
-    transactions: [],
-    hash: "",
-    previousHash: "",
+  addGenesisBlock = (): void => {
+    const block = new Block("").stampAndHash();
+
+    this.blocks.push(block);
   };
 
-  updateBlockHash(block);
+  addTransaction = (from: string, to: string, amount: number): void => {
+    const tx = new Transaction(from, to, amount).stampAndHash();
 
-  chain.blocks.push(block);
-};
-
-export const addTransaction = (chain: Blockchain, from: string, to: string, amount: number): void => {
-  const tx: Transaction = {
-    fromAddress: from,
-    toAddress: to,
-    amount,
-    timestamp: new Date().valueOf(),
-    hash: "",
-    signature: "",
-  };
-
-  updateTransactionHash(tx);
-
-  const validation = validateTransaction(tx);
-
-  if (validation) {
-    throw new Error(validation);
-  }
-
-  chain.pendingTransactions.push(tx);
-};
-
-export const minePendingTransactions = (chain: Blockchain, miner: string): void => {
-  const previous = chain.blocks[chain.blocks.length - 1];
-
-  const block: Block = {
-    nonce: 0,
-    timestamp: null,
-    transactions: [],
-    hash: "",
-    previousHash: previous.hash,
-  };
-
-  for (const tx of chain.pendingTransactions) {
-    const validation = validateTransaction(tx);
+    const validation = tx.validate();
 
     if (validation) {
-      console.error("invalid tx while mining", validation, tx);
-      console.error();
-
-      continue;
+      throw new Error(validation);
     }
 
-    block.transactions.push(tx);
-  }
+    this.pendingTransactions.push(tx);
+  };
 
-  addTransaction(chain, "system-rewards", miner, reward);
+  minePendingTransactions = (miner: string): void => {
+    const previous = this.blocks[this.blocks.length - 1];
 
-  // TODO: difficulty
+    const block = new Block(previous.hash);
 
-  block.timestamp = new Date().valueOf();
-  updateBlockHash(block);
+    for (const tx of this.pendingTransactions) {
+      const validation = tx.validate();
 
-  chain.blocks.push(block);
-  chain.pendingTransactions = chain.pendingTransactions.filter(
-    (x) => !block.transactions.some((y) => y.hash === x.hash)
-  );
-};
+      if (validation) {
+        console.error("invalid tx while mining", validation, tx);
+        console.error();
 
-export const validateBlockchain = (chain: Blockchain): string => {
-  const blocks = chain.blocks;
+        continue;
+      }
 
-  const genesisValidation = validateBlock(blocks[0]);
-
-  if (genesisValidation) {
-    return genesisValidation;
-  }
-
-  for (let i = 1; i < blocks.length; i++) {
-    const previous = blocks[i - 1];
-    const current = blocks[i];
-
-    if (previous.hash !== current.previousHash) {
-      return `previous.hash, current.previousHash mismatch: [${previous.hash}, ${current.previousHash}]`;
+      block.transactions.push(tx);
     }
 
-    const hash = calculateBlockHash(previous);
+    this.addTransaction("system-rewards", miner, this.reward);
 
-    if (previous.hash !== hash) {
-      return `previous hash calculation mismatch: [${previous.hash}, ${hash}]`;
+    // TODO: difficulty
+
+    block.stampAndHash();
+
+    this.blocks.push(block);
+
+    this.pendingTransactions = this.pendingTransactions.filter(
+      (x) => !block.transactions.some((y) => y.hash === x.hash)
+    );
+  };
+
+  validate = (): string => {
+    const blocks = this.blocks;
+
+    const genesisValidation = blocks[0].validate();
+
+    if (genesisValidation) {
+      return genesisValidation;
     }
 
-    const validation = validateBlock(current);
+    for (let i = 1; i < blocks.length; i++) {
+      const previous = blocks[i - 1];
+      const current = blocks[i];
 
-    if (validation) {
-      return validation;
+      if (previous.hash !== current.previousHash) {
+        return `previous.hash, current.previousHash mismatch: [${previous.hash}, ${current.previousHash}]`;
+      }
+
+      const hash = previous.calculateHash();
+
+      if (previous.hash !== hash) {
+        return `previous hash calculation mismatch: [${previous.hash}, ${hash}]`;
+      }
+
+      const validation = current.validate();
+
+      if (validation) {
+        return validation;
+      }
     }
-  }
-};
+  };
+}
