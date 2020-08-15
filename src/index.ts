@@ -15,7 +15,7 @@ const question = (query: string) => {
 const printChainStats = (chain: Blockchain) => {
   console.log("chain", JSON.stringify(chain, null, 2));
   console.log();
-  console.log("validation:", chain.validate());
+  console.log("validation:", chain.validate() || "success");
   console.log();
 };
 
